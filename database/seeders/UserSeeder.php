@@ -18,7 +18,7 @@ class UserSeeder extends Seeder
             'role' => 'admin',
         ]);
 
-        // // 🛠️ Create a regular Student
+        // 🛠️ Create a regular Student
         // User::create([
         //     'full_name' => 'John Doe',
         //     'email' => 'student@ict.edu',

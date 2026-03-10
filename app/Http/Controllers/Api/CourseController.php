@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\course;
+use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -47,7 +48,7 @@ class CourseController extends Controller
         $validate = $request->validate([
             "title" => "required|string|max:225|min:3",
             "description" => "required|string|max:225|min:3",
-            "duration_hours" => "required|string|max:225|min:3",
+            "duration_hours" => "required|string|max:225",
             "price" => "required|integer|min:0",
             "status" => "required|boolean",
             "image" => "nullable|file|max:2048"
@@ -55,8 +56,16 @@ class CourseController extends Controller
         ]);
         $validate["status"] === "1" ? $validate["status"] = true : $validate["status"] = false;
 
+        // if ($request->hasFile("image")) {
+        //     $validate["image"] = $request->file("image")->store("courses", "public");
+        // }
         if ($request->hasFile("image")) {
-            $validate["image"] = $request->file("image")->store("courses", "public");
+            $upload = Cloudinary::uploadApi()->upload(
+                $validate["image"]->getRealPath(),
+                ["folder" => config("cloudinary.upload_present", "ict_img")]
+            );
+            $validate["image_url"] = $upload["secure_url"];
+            $validate["image_public_id"] = $upload["public_id"];
         }
 
         $course = new course();
@@ -115,7 +124,7 @@ class CourseController extends Controller
         $validate = $request->validate([
             "title" => "required|string|max:225|min:3",
             "description" => "required|string|max:225|min:3",
-            "duration_hours" => "required|string|max:225|min:3",
+            "duration_hours" => "required|string|max:225",
             "price" => "required|integer|min:0",
             "status" => "required|boolean",
             "image" => "nullable|file|max:2048"
@@ -123,12 +132,25 @@ class CourseController extends Controller
         ]);
         $validate["status"] === "1" ? $validate["status"] = true : $validate["status"] = false;
 
+        // if ($request->hasFile("image")) {
+        //     if ($course->image && Storage::disk("public")->exists($course->image)) {
+        //         Storage::disk("public")->delete($course->image);
+        //     }
+        //     // create new image
+        //     $validate["image"]  = $request->file("image")->store("courses", "public");
+        // }
+
         if ($request->hasFile("image")) {
-            if ($course->image && Storage::disk("public")->exists($course->image)) {
-                Storage::disk("public")->delete($course->image);
+            if (!empty($course->image_public_id)) {
+                Cloudinary::uploadApi()->destroy($course->image_public_id);
             }
-            // create new image
-            $validate["image"]  = $request->file("image")->store("courses", "public");
+
+            $upload = Cloudinary::uploadApi()->upload(
+                $validate["image"]->getRealPath(),
+                ["folder" => config("cloudinary.upload_present", "ict_img")]
+            );
+            $validate["image_url"] = $upload["secure_url"];
+            $validate["image_public_id"] = $upload["public_id"];
         }
         $course->fill($validate);
         $course->save();
@@ -148,12 +170,17 @@ class CourseController extends Controller
 
         if (!$course) {
             return [
-                "message" => "product not found "
+                "message" => "course not found "
             ];
         }
-        if ($course->image && Storage::disk("public")->exists($course->image)) {
-            Storage::disk("public")->delete($course->image);
+        // if ($course->image && Storage::disk("public")->exists($course->image)) {
+        //     Storage::disk("public")->delete($course->image);
+        // }
+
+        if (!empty($course->image_public_id)) {
+            Cloudinary::uploadApi()->destroy($course->image_public_id);
         }
+
         $course->delete();
         return [
             "data" => $course,

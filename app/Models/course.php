@@ -21,6 +21,10 @@ class Course extends Model // 🛠️ Capitalized 'Course'
         "image_url",
         "image_public_id",
     ];
+    protected $casts = [
+        'price' => 'integer',
+        'status' => 'boolean',
+    ];
 
     public function schedules(): HasMany
     {
