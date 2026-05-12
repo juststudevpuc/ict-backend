@@ -74,9 +74,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get("/", [EnrollmentController::class, "index"]);
         Route::get("/search", [EnrollmentController::class, "search"]);
         Route::get("/{id}", [EnrollmentController::class, "show"]);
+        Route::post("/", [EnrollmentController::class, "store"]);
+        Route::put("/{id}", [EnrollmentController::class, "update"]);
+        Route::get("/{id}", [EnrollmentController::class, "show"]);
     });
 
     Route::prefix("student")->group(function () {
         Route::get("/{id}", [StudentController::class, "show"]);
     });
+
 });
