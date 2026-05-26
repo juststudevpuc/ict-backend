@@ -107,20 +107,19 @@ class EnrollmentController extends Controller
 
         // 1. Search Logic
         if ($queryStr) {
-            // 1. Find students matching the search (Case-insensitive)
+            // Find students matching the search (Case-insensitive)
             $students = \App\Models\Student::where('full_name', 'regexp', '/.*' . $queryStr . '.*/i')->get();
 
             if ($students->isEmpty()) {
                 // If no student matches the search name, force the table to return 0 results
                 $enrollmentQuery->where('_id', null);
             } else {
-                // 2. Extract IDs safely as STRINGS
+                // Extract IDs safely as STRINGS
                 $studentIds = $students->map(function ($student) {
-                    // Using _id explicitly and casting to string to match your database exactly
                     return (string) $student->_id;
                 })->toArray();
 
-                // 3. Filter enrollments (String matching String)
+                // Filter enrollments
                 $enrollmentQuery->whereIn('student_id', $studentIds);
             }
         }
@@ -141,50 +140,49 @@ class EnrollmentController extends Controller
                 return $q->where("status", (bool)$status);
             });
 
-        // 3. Financial Summary (The "Safety First" approach)
-        // We fetch the collection once to handle the string-to-float conversion safely
+        // 3. Financial Summary (SAFELY UPDATED)
         $allFiltered = $enrollmentQuery->get();
 
         $stats = [
             'total_expected' => (float) $allFiltered->sum(function ($item) {
-                // Calculate the real price after the % discount is removed
-                $discountAmount = ($item->total_price * $item->discount) / 100;
-                return $item->total_price - $discountAmount;
+                // ✅ Use 0 if the database row is missing total_price or discount
+                $price = $item->total_price ?? 0;
+                $discount = $item->discount ?? 0;
+
+                $discountAmount = ($price * $discount) / 100;
+                return $price - $discountAmount;
             }),
-            'total_paid' => (float) $allFiltered->sum(fn($item) => (float)$item->paid_amount),
+            'total_paid' => (float) $allFiltered->sum(fn($item) => (float)($item->paid_amount ?? 0)),
         ];
 
         // Now Debt is simply what is left over from the discounted price
         $stats['total_debt'] = $stats['total_expected'] - $stats['total_paid'];
 
         // 4. Final Data with Relationships
-        // We sort the collection we already fetched to avoid a second database hit
         $enrollment = $allFiltered->load(['course', 'student', 'schedule'])
             ->sortBy([[$sortBy, $sortOrder]]);
 
         return response()->json([
             "stats" => $stats,
-            "data" => $enrollment->values(), // values() resets array keys after sorting
+            "data" => $enrollment->values(),
             "message" => "Data retrieved successfully"
         ]);
     }
+
     /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
     {
-        //
         $validate = $request->validate([
             'student_id' => 'required|string|exists:students,_id',
             'course_id' => 'required|string|exists:courses,_id',
             'schedule_id' => 'required|string|exists:schedules,_id',
             'enrollment_date' => 'nullable|date',
-
             'total_price' => 'required|numeric|min:0',
             'discount' => 'nullable|numeric|min:0',
             'paid_amount' => 'required|numeric|min:0',
             'payment_status' => 'required|string',
-
             'status' => 'required|boolean'
         ]);
 
@@ -193,6 +191,7 @@ class EnrollmentController extends Controller
         $validate['total_price'] = (float) $request->total_price;
         $validate['paid_amount'] = (float) $request->paid_amount;
         $validate['discount']    = (float) ($request->discount ?? 0);
+
         $enrollment = Enrollment::create($validate);
 
         return response()->json([
@@ -206,19 +205,18 @@ class EnrollmentController extends Controller
      */
     public function show(string $id)
     {
-        //
         $enrollment = Enrollment::find($id);
 
         if (!$enrollment) {
             return response()->json([
                 "message" => "Not found"
-
             ], 404);
         }
+
         return response()->json([
             "data" => $enrollment->load(['student', 'course', 'schedule']),
             "message" => "get one successfully"
-        ], 201);
+        ], 200);
     }
 
     /**
@@ -226,31 +224,28 @@ class EnrollmentController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
         $enrollment = Enrollment::find($id);
 
         if (!$enrollment) {
             return response()->json([
                 "message" => "Not found"
-
             ], 404);
         }
+
         $validate = $request->validate([
             'student_id' => 'required|string|exists:students,_id',
             'course_id' => 'required|string|exists:courses,_id',
             'schedule_id' => 'required|string|exists:schedules,_id',
             'enrollment_date' => 'nullable|date',
-
             'total_price' => 'required|numeric|min:0',
             'discount' => 'nullable|numeric|min:0',
             'paid_amount' => 'required|numeric|min:0',
             'payment_status' => 'required|string',
-
             'status' => 'required|boolean'
         ]);
+
         // safely check discount
         $validate['discount'] = $validate['discount'] ?? 0;
-
         $validate["status"] == 1 ? $validate["status"] = true : $validate["status"] = false;
 
         $enrollment->update($validate);
@@ -258,7 +253,7 @@ class EnrollmentController extends Controller
         return response()->json([
             "data" => $enrollment->load(['student', 'course', 'schedule']),
             "message" => "Update Enrollment successfully"
-        ], 201);
+        ], 200);
     }
 
     /**
@@ -266,13 +261,11 @@ class EnrollmentController extends Controller
      */
     public function destroy(string $id)
     {
-        //
         $enrollment = Enrollment::find($id);
 
         if (!$enrollment) {
             return response()->json([
                 "message" => "Not found"
-
             ], 404);
         }
 
