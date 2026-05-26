@@ -18,7 +18,7 @@ class ScheduleController extends Controller
         $schedules = Schedule::query()->when($course, function ($q) use ($course) {
             return $q->where('course_id', $course);
         })
-            ->with(['course', 'instructor']) // Fetch course AND instructor data!
+            // ->with(['course', 'instructor']) // Fetch course AND instructor data!
             ->get();
 
         return response()->json([
