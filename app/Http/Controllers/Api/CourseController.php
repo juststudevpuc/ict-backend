@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\course;
+use App\Models\Course;
 use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -14,7 +14,7 @@ class CourseController extends Controller
     {
         $query = $request->query("q");
 
-        $course = course::where("title", "like", "%" . $query . "%")->get();
+        $course = Course::where("title", "like", "%" . $query . "%")->get();
 
         return response()->json([
             "Query"   => $query,
@@ -29,7 +29,7 @@ class CourseController extends Controller
     public function index()
     {
         //
-        $course = course::query()->get();
+        $course = Course::query()->get();
 
         return response()->json(
             [
@@ -68,7 +68,7 @@ class CourseController extends Controller
             $validate["image_public_id"] = $upload["public_id"];
         }
 
-        $course = new course();
+        $course = new Course();
         $course->fill($validate);
         $course->save();
         return [
@@ -114,7 +114,7 @@ class CourseController extends Controller
     public function update(Request $request, string $id)
     {
         //
-        $course = course::find($id);
+        $course = Course::find($id);
 
         if (!$course) {
             return [
@@ -166,7 +166,7 @@ class CourseController extends Controller
     public function destroy(string $id)
     {
         //
-        $course = course::find($id);
+        $course = Course::find($id);
 
         if (!$course) {
             return [
