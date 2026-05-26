@@ -12,9 +12,6 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-// =======================================================
-// 🔓 1. PUBLIC ROUTES (No login required)
-// =======================================================
 Route::post('/login', [AuthController::class, 'userLogin']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/admin/login', [AuthController::class, 'adminLogin']);
@@ -49,38 +46,86 @@ Route::prefix("employee")->group(function () {
 
 Route::prefix("student")->group(function () {
     Route::get("/", [StudentController::class, "index"]);
-    Route::get("/", [StudentController::class, "search"]);
+    Route::get("/search", [StudentController::class, "search"]);
 });
 
-// =======================================================
-// 🔒 2. USER ROUTES (Must have Sanctum token, ANY role)
-// =======================================================
 Route::middleware('auth:sanctum')->group(function () {
-
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
-    Route::middleware('checkAdmin')->get('/users', function () {
-        // You can return User::all(), or paginate it if you have a lot!
+
+    Route::post('/logout', [AuthController::class, 'logout']);
+
+    // Route::prefix("enrollment")->group(function () {
+    //     Route::get("/", [EnrollmentController::class, "index"]);
+    //     Route::get("/search", [EnrollmentController::class, "search"]);
+    //     Route::get("/{id}", [EnrollmentController::class, "show"]);
+    //     Route::post("/", [EnrollmentController::class, "store"]);
+    //     Route::put("/{id}", [EnrollmentController::class, "update"]);
+    // });
+
+    Route::prefix("student")->group(function () {
+        Route::get("/{id}", [StudentController::class, "show"]);
+    });
+});
+
+Route::middleware(['auth:sanctum', 'checkAdmin'])->prefix('admin')->group(function () {
+    Route::get('/users', function () {
         return response()->json([
             'data' => User::all()
         ]);
     });
 
-    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::prefix("employee")->group(function () {
+        Route::post("/", [EmployeeController::class, "store"]);
+        Route::put("/{id}", [EmployeeController::class, "update"]);
+        Route::delete("/{id}", [EmployeeController::class, "destroy"]);
+    });
 
-    // Regular users CAN read these, but only admins can edit them (in admin.php)
+    Route::prefix("course")->group(function () {
+        Route::get("/", [CourseController::class, "index"]);
+        Route::get("/{id}", [CourseController::class, "show"]);
+        Route::post("/", [CourseController::class, "store"]);
+        Route::put("/{id}", [CourseController::class, "update"]);
+        Route::delete("/{id}", [CourseController::class, "destroy"]);
+    });
+
+    Route::prefix("schedule")->group(function () {
+        Route::get("/", [ScheduleController::class, "index"]);
+        Route::get("/{id}", [ScheduleController::class, "show"]);
+        Route::post("/", [ScheduleController::class, "store"]);
+        Route::put("/{id}", [ScheduleController::class, "update"]);
+        Route::delete("/{id}", [ScheduleController::class, "destroy"]);
+    });
+
+    Route::prefix("instructor")->group(function () {
+        Route::get("/", [InstructorController::class, "index"]);
+        Route::get("/{id}", [InstructorController::class, "show"]);
+        Route::post("/", [InstructorController::class, "store"]);
+        Route::put("/{id}", [InstructorController::class, "update"]);
+        Route::delete("/{id}", [InstructorController::class, "destroy"]);
+    });
+
     Route::prefix("enrollment")->group(function () {
         Route::get("/", [EnrollmentController::class, "index"]);
         Route::get("/search", [EnrollmentController::class, "search"]);
         Route::get("/{id}", [EnrollmentController::class, "show"]);
         Route::post("/", [EnrollmentController::class, "store"]);
         Route::put("/{id}", [EnrollmentController::class, "update"]);
-        Route::get("/{id}", [EnrollmentController::class, "show"]);
+        Route::delete("/{id}", [EnrollmentController::class, "destroy"]);
+
     });
 
     Route::prefix("student")->group(function () {
-        Route::get("/{id}", [StudentController::class, "show"]);
+        Route::post("/", [StudentController::class, "store"]);
+        Route::put("/{id}", [StudentController::class, "update"]);
+        Route::delete("/{id}", [StudentController::class, "destroy"]);
     });
 
+    Route::prefix("courseDetail")->group(function () {
+        Route::get("/", [CourseDetailController::class, "index"]);
+        Route::post("/", [CourseDetailController::class, "store"]);
+        Route::put("/{id}", [CourseDetailController::class, "update"]);
+        Route::delete("/{id}", [CourseDetailController::class, "destroy"]);
+    });
 });

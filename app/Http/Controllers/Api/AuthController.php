@@ -54,9 +54,9 @@ class AuthController extends Controller
         }
 
         // ✅ SECURITY: Stop admins from logging into the student/user portal
-        if ($user->role === 'admin') {
-            return response()->json(['status' => false, 'message' => 'Admins must use the Admin Portal.'], 403);
-        }
+        // if ($user->role === 'admin') {
+        //     return response()->json(['status' => false, 'message' => 'Admins must use the Admin Portal.'], 403);
+        // }
 
         $token = $user->createToken('user_token')->plainTextToken;
 
